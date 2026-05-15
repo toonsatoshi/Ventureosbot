@@ -28,6 +28,13 @@ function getBot(env: Env) {
       await handleNewProject(ctx, env);
     });
 
+    bot.command('reset', async (ctx) => {
+      const chatId = ctx.chat.id.toString();
+      const projectService = new ProjectService(env);
+      await projectService.resetProject(chatId);
+      await ctx.reply('Project state cleared. You are back at square one!');
+    });
+
     bot.command('generate_spec', async (ctx) => {
       try {
         await handleGenerateSpec(ctx, env);

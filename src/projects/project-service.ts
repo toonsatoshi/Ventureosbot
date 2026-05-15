@@ -43,4 +43,11 @@ export class ProjectService {
       history: []
     });
   }
+
+  async resetProject(chatId: string): Promise<ProjectState> {
+    const id = this.env.PROJECT_SESSION.idFromName(chatId);
+    const stub = this.env.PROJECT_SESSION.get(id);
+    const response = await stub.fetch(`http://do/reset`, { method: 'POST' });
+    return await response.json() as ProjectState;
+  }
 }

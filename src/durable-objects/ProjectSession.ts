@@ -40,6 +40,14 @@ export class ProjectSession {
       });
     }
 
+    if (request.method === 'POST' && path === '/reset') {
+      await this.storage.delete('projectState');
+      const newState = await this.getProjectState();
+      return new Response(JSON.stringify(newState), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     return new Response('Not Found', { status: 404 });
   }
 
