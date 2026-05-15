@@ -20,4 +20,4 @@ class_name = "ProjectSession"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ProjectSession"]
+new_sqlite_classes = ["ProjectSession"]
