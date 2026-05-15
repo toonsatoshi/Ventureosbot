@@ -1,11 +1,12 @@
 import { Bot, webhookCallback } from 'grammy';
-import { Env } from './types';
+import { Env, ProjectStage } from './types';
 import { ProjectSession } from './durable-objects/ProjectSession';
 import { handleNewProject } from './bot/commands/new-project';
 import { handleGenerateSpec } from './bot/commands/generate-spec';
 import { handleBuild } from './bot/commands/build';
 import { handleExport } from './bot/commands/export';
 import { WorkflowManager } from './core/workflow-manager';
+import { ProjectService } from './projects/project-service';
 
 // Explicitly export the Durable Object class
 export { ProjectSession };
