@@ -1,7 +1,6 @@
 name = "venture-os-bot"
 main = "src/index.ts"
 compatibility_date = "2024-02-08"
-account_id = "PASTE_YOUR_ACCOUNT_ID_HERE"
 
 [vars]
 # TELEGRAM_BOT_TOKEN and NEBIUS_API_KEY are managed via GitHub Secrets
