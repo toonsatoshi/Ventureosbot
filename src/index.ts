@@ -50,7 +50,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/webhook') {
       const botInstance = getBot(env);
-      return webhookCallback(botInstance, 'cloudflare-poll')(request);
+      return webhookCallback(botInstance, 'cloudflare')(request);
     }
     return new Response('Not Found', { status: 404 });
   }
