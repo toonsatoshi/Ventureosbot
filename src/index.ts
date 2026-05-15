@@ -20,27 +20,50 @@ function getBot(env: Env) {
       await ctx.reply('Welcome to Venture OS Bot! Use /newproject to start a new venture.');
     });
 
+    bot.command('ping', async (ctx) => {
+      await ctx.reply('pong! I am alive and using: ' + env.NEBIUS_API_KEY?.substring(0, 10) + '...');
+    });
+
     bot.command('newproject', async (ctx) => {
       await handleNewProject(ctx, env);
     });
 
     bot.command('generate_spec', async (ctx) => {
-      await handleGenerateSpec(ctx, env);
+      try {
+        await handleGenerateSpec(ctx, env);
+      } catch (e: any) {
+        await ctx.reply(`Error generating spec: ${e.message}`);
+      }
     });
 
     bot.command('build', async (ctx) => {
-      await handleBuild(ctx, env);
+      try {
+        await handleBuild(ctx, env);
+      } catch (e: any) {
+        await ctx.reply(`Error designing architecture: ${e.message}`);
+      }
     });
 
     bot.command('export', async (ctx) => {
-      await handleExport(ctx, env);
+      try {
+        await handleExport(ctx, env);
+      } catch (e: any) {
+        await ctx.reply(`Error exporting: ${e.message}`);
+      }
     });
 
     bot.on('message:text', async (ctx) => {
-      const chatId = ctx.chat.id.toString();
-      const workflowManager = new WorkflowManager(env);
-      const response = await workflowManager.processMessage(chatId, ctx.message.text);
-      await ctx.reply(response);
+      try {
+        const chatId = ctx.chat.id.toString();
+        const workflowManager = new WorkflowManager(env);
+        const response = await workflowManager.processMessage(chatId, ctx.message.text);
+        // Truncate long responses for Telegram
+        const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
+        await ctx.reply(text);
+      } catch (error: any) {
+        console.error('Text message error:', error);
+        await ctx.reply(`I encountered an error: ${error.message}`);
+      }
     });
 
     bot.on('message:photo', async (ctx) => {
@@ -52,9 +75,9 @@ function getBot(env: Env) {
         if (file.file_path) {
           const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
           const imageResponse = await fetch(fileUrl);
+          if (!imageResponse.ok) throw new Error('Failed to download image from Telegram');
           const imageBuffer = await imageResponse.arrayBuffer();
           
-          // Robust Base64 conversion
           const uint8Array = new Uint8Array(imageBuffer);
           let binary = '';
           for (let i = 0; i < uint8Array.length; i++) {
@@ -67,7 +90,8 @@ function getBot(env: Env) {
             data: base64Image,
             mimeType: 'image/jpeg'
           });
-          await ctx.reply(response);
+          const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
+          await ctx.reply(text);
         }
       } catch (error: any) {
         console.error('Photo processing error:', error);
@@ -88,6 +112,11 @@ export default {
     if (url.pathname === '/webhook') {
       const botInstance = getBot(env);
       return webhookCallback(botInstance, 'cloudflare-mod')(request);
+    }
+    if (url.pathname === '/health') {
+      return new Response(JSON.stringify({ status: 'ok', time: Date.now() }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
     return new Response('Not Found', { status: 404 });
   }

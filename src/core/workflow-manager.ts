@@ -27,18 +27,28 @@ export class WorkflowManager {
 
     const updatedState = await this.projectService.getProjectState(chatId);
 
+    // Optimize history: Only keep the most recent image's base64 to save memory/context
+    const optimizedHistory = updatedState.history.slice(-15).map((msg, index, arr) => {
+      // If it's not the very last message in history, or it's not the current input, strip the image data
+      if (index < arr.length - 1 && msg.image) {
+        return { ...msg, content: msg.content + ' (Image data stripped for context efficiency)', image: undefined };
+      }
+      return msg;
+    });
+
     // Prepare messages with system prompt
     const systemPrompt = getSystemPrompt(updatedState.stage);
     const messagesWithSystem: Message[] = [
       { role: 'system', content: systemPrompt, timestamp: Date.now() },
-      ...updatedState.history
+      ...optimizedHistory
     ];
 
     // Determine the best model for the current stage
     let modelId: string | undefined;
     
-    // Use Vision Model if an image was just uploaded
-    if (image) {
+    // Use Vision Model if an image was just uploaded or is in the last message
+    const hasImage = optimizedHistory.some(m => m.image);
+    if (hasImage) {
       modelId = 'Qwen/Qwen2.5-VL-72B-Instruct';
     } else {
       switch (updatedState.stage) {
