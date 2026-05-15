@@ -10,9 +10,9 @@ compatibility_date = "2024-02-08"
 # binding = "KV"
 # id = "your-kv-id"
 
-[[r2_buckets]]
-binding = "ARTIFACTS"
-bucket_name = "venture-artifacts"
+# [[r2_buckets]]
+# binding = "ARTIFACTS"
+# bucket_name = "venture-artifacts"
 
 [[durable_objects.bindings]]
 name = "PROJECT_SESSION"
