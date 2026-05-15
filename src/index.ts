@@ -123,7 +123,12 @@ export default {
           return new Response('TELEGRAM_BOT_TOKEN is missing', { status: 500 });
         }
         const botInstance = getBot(env);
-        return await webhookCallback(botInstance, 'cloudflare-mod')(request);
+        // Explicitly catch errors from grammY and return them for visibility
+        try {
+          return await webhookCallback(botInstance, 'cloudflare-mod')(request);
+        } catch (botErr: any) {
+          return new Response(`Bot Logic Error: ${botErr.message}\n${botErr.stack}`, { status: 200 }); // Return 200 to Telegram to stop retries, but show error
+        }
       }
 
       if (url.pathname === '/health') {

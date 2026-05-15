@@ -52,16 +52,27 @@ export class ProjectSession {
   }
 
   private async getProjectState(): Promise<ProjectState> {
-    let state = await this.storage.get<ProjectState>('projectState');
-    if (!state) {
-      state = {
+    try {
+      let state = await this.storage.get<ProjectState>('projectState');
+      if (!state) {
+        state = {
+          id: this.state.id.toString(),
+          name: 'New Project',
+          stage: ProjectStage.IDEATION,
+          history: []
+        };
+        await this.storage.put('projectState', state);
+      }
+      return state;
+    } catch (e: any) {
+      console.error('DO Storage Read Error:', e);
+      // Fail-safe: Return a fresh state if the existing one is unreadable (e.g. SQLITE_TOOBIG)
+      return {
         id: this.state.id.toString(),
-        name: 'New Project',
+        name: 'Recovered Project',
         stage: ProjectStage.IDEATION,
-        history: []
+        history: [{ role: 'system', content: 'Storage recovered after error: ' + e.message, timestamp: Date.now() }]
       };
-      await this.storage.put('projectState', state);
     }
-    return state;
   }
 }
