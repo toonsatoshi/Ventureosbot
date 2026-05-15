@@ -19,6 +19,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "3.55.0"
           secrets: |
             TELEGRAM_BOT_TOKEN
             NEBIUS_API_KEY
