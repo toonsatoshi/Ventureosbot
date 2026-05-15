@@ -1,7 +1,7 @@
 import { Message, Env } from '../../types';
 
 export interface AIProvider {
-  generateResponse(messages: Message[]): Promise<string>;
+  generateResponse(messages: Message[], modelId?: string): Promise<string>;
 }
 
 export class OpenAIProvider implements AIProvider {
