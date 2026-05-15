@@ -15,19 +15,17 @@ export class NebiusProvider implements AIProvider {
     const isVisionModel = model.includes('VL') || model.includes('Vision');
 
     const formattedMessages = messages.map(m => {
-      if (isVisionModel && m.image) {
-        return {
-          role: m.role,
-          content: [
-            { type: 'text', text: m.content },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${m.image.mimeType};base64,${m.image.data}`
-              }
+      if (isVisionModel) {
+        const content: any[] = [{ type: 'text', text: m.content }];
+        if (m.image) {
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: `data:${m.image.mimeType};base64,${m.image.data}`
             }
-          ]
-        };
+          });
+        }
+        return { role: m.role, content };
       }
       return { role: m.role, content: m.content };
     });

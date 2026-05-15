@@ -44,23 +44,39 @@ function getBot(env: Env) {
     });
 
     bot.on('message:photo', async (ctx) => {
-      const chatId = ctx.chat.id.toString();
-      const photo = ctx.message.photo[ctx.message.photo.length - 1]; // Get largest size
-      const file = await ctx.api.getFile(photo.file_id);
-      
-      if (file.file_path) {
-        const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
-        const imageResponse = await fetch(fileUrl);
-        const imageBuffer = await imageResponse.arrayBuffer();
-        const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+      try {
+        const chatId = ctx.chat.id.toString();
+        const photo = ctx.message.photo[ctx.message.photo.length - 1];
+        const file = await ctx.api.getFile(photo.file_id);
         
-        const workflowManager = new WorkflowManager(env);
-        const response = await workflowManager.processMessage(chatId, ctx.message.caption || 'Analyze this image.', {
-          data: base64Image,
-          mimeType: 'image/jpeg'
-        });
-        await ctx.reply(response);
+        if (file.file_path) {
+          const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
+          const imageResponse = await fetch(fileUrl);
+          const imageBuffer = await imageResponse.arrayBuffer();
+          
+          // Robust Base64 conversion
+          const uint8Array = new Uint8Array(imageBuffer);
+          let binary = '';
+          for (let i = 0; i < uint8Array.length; i++) {
+            binary += String.fromCharCode(uint8Array[i]);
+          }
+          const base64Image = btoa(binary);
+          
+          const workflowManager = new WorkflowManager(env);
+          const response = await workflowManager.processMessage(chatId, ctx.message.caption || 'Analyze this image.', {
+            data: base64Image,
+            mimeType: 'image/jpeg'
+          });
+          await ctx.reply(response);
+        }
+      } catch (error: any) {
+        console.error('Photo processing error:', error);
+        await ctx.reply(`Error processing image: ${error.message}`);
       }
+    });
+
+    bot.catch((err) => {
+      console.error('Global Bot Error:', err);
     });
   }
   return bot;
