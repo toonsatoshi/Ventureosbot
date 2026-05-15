@@ -1,4 +1,4 @@
-name = "venture-os-bot"
+name = "ventureosbot"
 main = "src/index.ts"
 compatibility_date = "2024-02-08"
 account_id = "ef08ac9e9f7114e7f6926b8d2c17aac6"
