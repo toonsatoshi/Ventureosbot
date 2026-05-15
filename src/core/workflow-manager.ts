@@ -17,38 +17,34 @@ export class WorkflowManager {
   async processMessage(chatId: string, text: string, image?: { data: string, mimeType: string }): Promise<string> {
     const state = await this.projectService.getProjectState(chatId);
     
-    // Add user message (and image) to history
+    // Add user message to history WITHOUT the heavy base64 data
+    // We only keep the text/caption for permanent storage
     await this.projectService.addMessage(chatId, {
       role: 'user',
-      content: text,
-      timestamp: Date.now(),
-      image
+      content: image ? `[Image Uploaded] ${text}` : text,
+      timestamp: Date.now()
     });
 
     const updatedState = await this.projectService.getProjectState(chatId);
 
-    // Optimize history: Only keep the most recent image's base64 to save memory/context
-    const optimizedHistory = updatedState.history.slice(-15).map((msg, index, arr) => {
-      // If it's not the very last message in history, or it's not the current input, strip the image data
-      if (index < arr.length - 1 && msg.image) {
-        return { ...msg, content: msg.content + ' (Image data stripped for context efficiency)', image: undefined };
-      }
-      return msg;
-    });
-
     // Prepare messages with system prompt
     const systemPrompt = getSystemPrompt(updatedState.stage);
+    
+    // Create a temporary history for the AI call that includes the current image
+    const temporaryHistory: Message[] = [...updatedState.history];
+    if (image) {
+      // Add the binary data back just for this one AI request
+      temporaryHistory[temporaryHistory.length - 1].image = image;
+    }
+
     const messagesWithSystem: Message[] = [
       { role: 'system', content: systemPrompt, timestamp: Date.now() },
-      ...optimizedHistory
+      ...temporaryHistory
     ];
 
-    // Determine the best model for the current stage
+    // Determine the best model
     let modelId: string | undefined;
-    
-    // Use Vision Model if an image was just uploaded or is in the last message
-    const hasImage = optimizedHistory.some(m => m.image);
-    if (hasImage) {
+    if (image) {
       modelId = 'Qwen/Qwen2.5-VL-72B-Instruct';
     } else {
       switch (updatedState.stage) {
@@ -60,9 +56,6 @@ export class WorkflowManager {
           break;
         case ProjectStage.ARCHITECTURE:
           modelId = 'meta-llama/Llama-3.3-70B-Instruct';
-          break;
-        case ProjectStage.BUILDING:
-          modelId = 'Qwen/Qwen3-Next-80B-A3B-Thinking';
           break;
         default:
           modelId = 'meta-llama/Llama-3.3-70B-Instruct';
