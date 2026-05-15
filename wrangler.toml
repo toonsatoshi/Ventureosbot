@@ -1,0 +1,22 @@
+name = "venture-os-bot"
+main = "src/index.ts"
+compatibility_date = "2024-02-08"
+
+[vars]
+# TELEGRAM_BOT_TOKEN = "your-token"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "your-kv-id"
+
+[[r2_buckets]]
+binding = "ARTIFACTS"
+bucket_name = "venture-artifacts"
+
+[[durable_objects.bindings]]
+name = "PROJECT_SESSION"
+class_name = "ProjectSession"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ProjectSession"]
