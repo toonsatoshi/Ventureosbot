@@ -65,14 +65,18 @@ function getBot(env: Env) {
         const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
         const botUsername = 'Ventureos1bot';
         
-        // Respond if: 1. Private chat OR 2. Group chat AND mentioned (case-insensitive)
-        const text = ctx.message.text || '';
-        const shouldRespond = !isGroup || text.toLowerCase().includes(botUsername.toLowerCase());
+        // Robust detection: 1. Private chat OR 2. Entity mention OR 3. Reply to bot
+        const hasMention = ctx.message.entities?.some(e => 
+          e.type === 'mention' && ctx.message.text?.substring(e.offset, e.offset + e.length).toLowerCase() === `@${botUsername.toLowerCase()}`
+        ) || ctx.message.text?.toLowerCase().includes(`@${botUsername.toLowerCase()}`);
+        
+        const isReplyToMe = ctx.message.reply_to_message?.from?.username === botUsername;
+        
+        const shouldRespond = !isGroup || hasMention || isReplyToMe;
         
         if (shouldRespond) {
-          // Remove the mention from the text to give clean input to AI
           const mentionRegex = new RegExp(`@?${botUsername}`, 'gi');
-          const cleanText = text.replace(mentionRegex, '').trim();
+          const cleanText = ctx.message.text.replace(mentionRegex, '').trim();
           
           const workflowManager = new WorkflowManager(env);
           const response = await workflowManager.processMessage(chatId, cleanText);
@@ -81,7 +85,6 @@ function getBot(env: Env) {
         }
       } catch (error: any) {
         console.error('Text message error:', error);
-        // Don't reply with errors in groups unless mentioned, to avoid spam
         if (ctx.chat.type === 'private') {
           await ctx.reply(`I encountered an error: ${error.message}`);
         }
@@ -94,9 +97,13 @@ function getBot(env: Env) {
         const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
         const botUsername = 'Ventureos1bot';
         
-        // For photos, check caption for mention in groups
-        const caption = ctx.message.caption || '';
-        const shouldRespond = !isGroup || caption.toLowerCase().includes(botUsername.toLowerCase());
+        const hasMention = ctx.message.caption_entities?.some(e => 
+          e.type === 'mention' && ctx.message.caption?.substring(e.offset, e.offset + e.length).toLowerCase() === `@${botUsername.toLowerCase()}`
+        ) || ctx.message.caption?.toLowerCase().includes(`@${botUsername.toLowerCase()}`);
+
+        const isReplyToMe = ctx.message.reply_to_message?.from?.username === botUsername;
+
+        const shouldRespond = !isGroup || hasMention || isReplyToMe;
         
         if (shouldRespond) {
           const photo = ctx.message.photo[ctx.message.photo.length - 1];
@@ -105,7 +112,7 @@ function getBot(env: Env) {
           if (file.file_path) {
             const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
             const imageResponse = await fetch(fileUrl);
-            if (!imageResponse.ok) throw new Error('Failed to download image from Telegram');
+            if (!imageResponse.ok) throw new Error('Failed to download image');
             const imageBuffer = await imageResponse.arrayBuffer();
             
             const uint8Array = new Uint8Array(imageBuffer);
