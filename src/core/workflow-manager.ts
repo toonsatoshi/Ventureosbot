@@ -59,6 +59,7 @@ export class WorkflowManager {
     // If it was an image, we already have the analysis, so we just let the stage model respond to that context
     let modelId: string | undefined;
     switch (updatedState.stage) {
+      case ProjectStage.CHAT_PARTNER:
       case ProjectStage.IDEATION:
         modelId = 'deepseek-ai/DeepSeek-V3.2-fast';
         break;

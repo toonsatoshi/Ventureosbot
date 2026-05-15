@@ -35,6 +35,20 @@ function getBot(env: Env) {
       await ctx.reply('Project state cleared. You are back at square one!');
     });
 
+    bot.command('chatmode', async (ctx) => {
+      const chatId = ctx.chat.id.toString();
+      const projectService = new ProjectService(env);
+      await projectService.updateProjectState(chatId, { stage: ProjectStage.CHAT_PARTNER });
+      await ctx.reply("Switching to Chat Partner mode! Let's just hang out and talk about whatever's on your mind. 😊");
+    });
+
+    bot.command('venturemode', async (ctx) => {
+      const chatId = ctx.chat.id.toString();
+      const projectService = new ProjectService(env);
+      await projectService.updateProjectState(chatId, { stage: ProjectStage.IDEATION });
+      await ctx.reply("Switching back to Venture mode! Ready to build the next big thing. 🚀");
+    });
+
     bot.command('generate_spec', async (ctx) => {
       try {
         await handleGenerateSpec(ctx, env);

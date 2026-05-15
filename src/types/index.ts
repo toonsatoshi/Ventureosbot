@@ -4,7 +4,8 @@ export enum ProjectStage {
   ARCHITECTURE = 'ARCHITECTURE',
   BUILDING = 'BUILDING',
   LAUNCH_PLANNING = 'LAUNCH_PLANNING',
-  EXPORTED = 'EXPORTED'
+  EXPORTED = 'EXPORTED',
+  CHAT_PARTNER = 'CHAT_PARTNER'
 }
 
 export interface ProjectState {
