@@ -11,6 +11,27 @@ export class NebiusProvider implements AIProvider {
   }
 
   async generateResponse(messages: Message[], modelOverride?: string): Promise<string> {
+    const model = modelOverride || this.model;
+    const isVisionModel = model.includes('VL') || model.includes('Vision');
+
+    const formattedMessages = messages.map(m => {
+      if (isVisionModel && m.image) {
+        return {
+          role: m.role,
+          content: [
+            { type: 'text', text: m.content },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${m.image.mimeType};base64,${m.image.data}`
+              }
+            }
+          ]
+        };
+      }
+      return { role: m.role, content: m.content };
+    });
+
     const response = await fetch('https://api.tokenfactory.nebius.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -19,8 +40,8 @@ export class NebiusProvider implements AIProvider {
         'Authorization': `Bearer ${this.apiKey}`
       },
       body: JSON.stringify({
-        model: modelOverride || this.model,
-        messages: messages.map(m => ({ role: m.role, content: m.content }))
+        model: model,
+        messages: formattedMessages
       })
     });
 

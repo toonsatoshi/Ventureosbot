@@ -23,6 +23,10 @@ export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
+  image?: {
+    data: string; // Base64 or URL
+    mimeType: string;
+  };
 }
 
 export interface Env {

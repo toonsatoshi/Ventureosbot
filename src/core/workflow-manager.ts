@@ -14,14 +14,15 @@ export class WorkflowManager {
     this.aiRouter = new AIRouter(env);
   }
 
-  async processMessage(chatId: string, text: string): Promise<string> {
+  async processMessage(chatId: string, text: string, image?: { data: string, mimeType: string }): Promise<string> {
     const state = await this.projectService.getProjectState(chatId);
     
-    // Add user message to history
+    // Add user message (and image) to history
     await this.projectService.addMessage(chatId, {
       role: 'user',
       content: text,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      image
     });
 
     const updatedState = await this.projectService.getProjectState(chatId);
@@ -35,21 +36,27 @@ export class WorkflowManager {
 
     // Determine the best model for the current stage
     let modelId: string | undefined;
-    switch (updatedState.stage) {
-      case ProjectStage.IDEATION:
-        modelId = 'deepseek-ai/DeepSeek-V3.2-fast';
-        break;
-      case ProjectStage.SPECIFICATION:
-        modelId = 'deepseek-ai/DeepSeek-V4-Pro';
-        break;
-      case ProjectStage.ARCHITECTURE:
-        modelId = 'meta-llama/Llama-3.3-70B-Instruct';
-        break;
-      case ProjectStage.BUILDING:
-        modelId = 'Qwen/Qwen3-Next-80B-A3B-Thinking';
-        break;
-      default:
-        modelId = 'meta-llama/Llama-3.3-70B-Instruct';
+    
+    // Use Vision Model if an image was just uploaded
+    if (image) {
+      modelId = 'Qwen/Qwen2.5-VL-72B-Instruct';
+    } else {
+      switch (updatedState.stage) {
+        case ProjectStage.IDEATION:
+          modelId = 'deepseek-ai/DeepSeek-V3.2-fast';
+          break;
+        case ProjectStage.SPECIFICATION:
+          modelId = 'deepseek-ai/DeepSeek-V4-Pro';
+          break;
+        case ProjectStage.ARCHITECTURE:
+          modelId = 'meta-llama/Llama-3.3-70B-Instruct';
+          break;
+        case ProjectStage.BUILDING:
+          modelId = 'Qwen/Qwen3-Next-80B-A3B-Thinking';
+          break;
+        default:
+          modelId = 'meta-llama/Llama-3.3-70B-Instruct';
+      }
     }
 
     // Generate AI response

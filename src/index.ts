@@ -42,6 +42,26 @@ function getBot(env: Env) {
       const response = await workflowManager.processMessage(chatId, ctx.message.text);
       await ctx.reply(response);
     });
+
+    bot.on('message:photo', async (ctx) => {
+      const chatId = ctx.chat.id.toString();
+      const photo = ctx.message.photo[ctx.message.photo.length - 1]; // Get largest size
+      const file = await ctx.api.getFile(photo.file_id);
+      
+      if (file.file_path) {
+        const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
+        const imageResponse = await fetch(fileUrl);
+        const imageBuffer = await imageResponse.arrayBuffer();
+        const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+        
+        const workflowManager = new WorkflowManager(env);
+        const response = await workflowManager.processMessage(chatId, ctx.message.caption || 'Analyze this image.', {
+          data: base64Image,
+          mimeType: 'image/jpeg'
+        });
+        await ctx.reply(response);
+      }
+    });
   }
   return bot;
 }
