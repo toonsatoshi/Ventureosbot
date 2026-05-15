@@ -62,11 +62,19 @@ function getBot(env: Env) {
     bot.on('message:text', async (ctx) => {
       try {
         const chatId = ctx.chat.id.toString();
-        const workflowManager = new WorkflowManager(env);
-        const response = await workflowManager.processMessage(chatId, ctx.message.text);
-        // Truncate long responses for Telegram
-        const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
-        await ctx.reply(text);
+        const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+        const botUsername = '@Ventureos1bot';
+        
+        // Respond if: 1. Private chat OR 2. Group chat AND mentioned
+        const shouldRespond = !isGroup || ctx.message.text.includes(botUsername);
+        
+        if (shouldRespond) {
+          const cleanText = ctx.message.text.replace(botUsername, '').trim();
+          const workflowManager = new WorkflowManager(env);
+          const response = await workflowManager.processMessage(chatId, cleanText);
+          const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
+          await ctx.reply(text);
+        }
       } catch (error: any) {
         console.error('Text message error:', error);
         await ctx.reply(`I encountered an error: ${error.message}`);
@@ -76,29 +84,38 @@ function getBot(env: Env) {
     bot.on('message:photo', async (ctx) => {
       try {
         const chatId = ctx.chat.id.toString();
-        const photo = ctx.message.photo[ctx.message.photo.length - 1];
-        const file = await ctx.api.getFile(photo.file_id);
+        const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
+        const botUsername = '@Ventureos1bot';
         
-        if (file.file_path) {
-          const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
-          const imageResponse = await fetch(fileUrl);
-          if (!imageResponse.ok) throw new Error('Failed to download image from Telegram');
-          const imageBuffer = await imageResponse.arrayBuffer();
+        // For photos, check caption for mention in groups
+        const shouldRespond = !isGroup || (ctx.message.caption && ctx.message.caption.includes(botUsername));
+        
+        if (shouldRespond) {
+          const photo = ctx.message.photo[ctx.message.photo.length - 1];
+          const file = await ctx.api.getFile(photo.file_id);
           
-          const uint8Array = new Uint8Array(imageBuffer);
-          let binary = '';
-          for (let i = 0; i < uint8Array.length; i++) {
-            binary += String.fromCharCode(uint8Array[i]);
+          if (file.file_path) {
+            const fileUrl = `https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${file.file_path}`;
+            const imageResponse = await fetch(fileUrl);
+            if (!imageResponse.ok) throw new Error('Failed to download image from Telegram');
+            const imageBuffer = await imageResponse.arrayBuffer();
+            
+            const uint8Array = new Uint8Array(imageBuffer);
+            let binary = '';
+            for (let i = 0; i < uint8Array.length; i++) {
+              binary += String.fromCharCode(uint8Array[i]);
+            }
+            const base64Image = btoa(binary);
+            
+            const cleanCaption = (ctx.message.caption || 'Analyze this image.').replace(botUsername, '').trim();
+            const workflowManager = new WorkflowManager(env);
+            const response = await workflowManager.processMessage(chatId, cleanCaption, {
+              data: base64Image,
+              mimeType: 'image/jpeg'
+            });
+            const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
+            await ctx.reply(text);
           }
-          const base64Image = btoa(binary);
-          
-          const workflowManager = new WorkflowManager(env);
-          const response = await workflowManager.processMessage(chatId, ctx.message.caption || 'Analyze this image.', {
-            data: base64Image,
-            mimeType: 'image/jpeg'
-          });
-          const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
-          await ctx.reply(text);
         }
       } catch (error: any) {
         console.error('Photo processing error:', error);
