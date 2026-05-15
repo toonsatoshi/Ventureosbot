@@ -108,16 +108,32 @@ function getBot(env: Env) {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
-    if (url.pathname === '/webhook') {
-      const botInstance = getBot(env);
-      return webhookCallback(botInstance, 'cloudflare-mod')(request);
+    try {
+      const url = new URL(request.url);
+      
+      if (url.pathname === '/webhook') {
+        if (!env.TELEGRAM_BOT_TOKEN) {
+          return new Response('TELEGRAM_BOT_TOKEN is missing', { status: 500 });
+        }
+        const botInstance = getBot(env);
+        return await webhookCallback(botInstance, 'cloudflare-mod')(request);
+      }
+
+      if (url.pathname === '/health') {
+        return new Response(JSON.stringify({ 
+          status: 'ok', 
+          time: Date.now(),
+          hasToken: !!env.TELEGRAM_BOT_TOKEN,
+          hasNebiusKey: !!env.NEBIUS_API_KEY
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response('Not Found', { status: 404 });
+    } catch (e: any) {
+      console.error('Fetch Error:', e);
+      return new Response(`Internal Error: ${e.message}\n${e.stack}`, { status: 500 });
     }
-    if (url.pathname === '/health') {
-      return new Response(JSON.stringify({ status: 'ok', time: Date.now() }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    return new Response('Not Found', { status: 404 });
   }
 };
