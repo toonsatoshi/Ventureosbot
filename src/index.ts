@@ -63,21 +63,28 @@ function getBot(env: Env) {
       try {
         const chatId = ctx.chat.id.toString();
         const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
-        const botUsername = '@Ventureos1bot';
+        const botUsername = 'Ventureos1bot';
         
-        // Respond if: 1. Private chat OR 2. Group chat AND mentioned
-        const shouldRespond = !isGroup || ctx.message.text.includes(botUsername);
+        // Respond if: 1. Private chat OR 2. Group chat AND mentioned (case-insensitive)
+        const text = ctx.message.text || '';
+        const shouldRespond = !isGroup || text.toLowerCase().includes(botUsername.toLowerCase());
         
         if (shouldRespond) {
-          const cleanText = ctx.message.text.replace(botUsername, '').trim();
+          // Remove the mention from the text to give clean input to AI
+          const mentionRegex = new RegExp(`@?${botUsername}`, 'gi');
+          const cleanText = text.replace(mentionRegex, '').trim();
+          
           const workflowManager = new WorkflowManager(env);
           const response = await workflowManager.processMessage(chatId, cleanText);
-          const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
-          await ctx.reply(text);
+          const replyText = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
+          await ctx.reply(replyText);
         }
       } catch (error: any) {
         console.error('Text message error:', error);
-        await ctx.reply(`I encountered an error: ${error.message}`);
+        // Don't reply with errors in groups unless mentioned, to avoid spam
+        if (ctx.chat.type === 'private') {
+          await ctx.reply(`I encountered an error: ${error.message}`);
+        }
       }
     });
 
@@ -85,10 +92,11 @@ function getBot(env: Env) {
       try {
         const chatId = ctx.chat.id.toString();
         const isGroup = ctx.chat.type === 'group' || ctx.chat.type === 'supergroup';
-        const botUsername = '@Ventureos1bot';
+        const botUsername = 'Ventureos1bot';
         
         // For photos, check caption for mention in groups
-        const shouldRespond = !isGroup || (ctx.message.caption && ctx.message.caption.includes(botUsername));
+        const caption = ctx.message.caption || '';
+        const shouldRespond = !isGroup || caption.toLowerCase().includes(botUsername.toLowerCase());
         
         if (shouldRespond) {
           const photo = ctx.message.photo[ctx.message.photo.length - 1];
@@ -107,19 +115,23 @@ function getBot(env: Env) {
             }
             const base64Image = btoa(binary);
             
-            const cleanCaption = (ctx.message.caption || 'Analyze this image.').replace(botUsername, '').trim();
+            const mentionRegex = new RegExp(`@?${botUsername}`, 'gi');
+            const cleanCaption = (ctx.message.caption || 'Analyze this image.').replace(mentionRegex, '').trim();
+            
             const workflowManager = new WorkflowManager(env);
             const response = await workflowManager.processMessage(chatId, cleanCaption, {
               data: base64Image,
               mimeType: 'image/jpeg'
             });
-            const text = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
-            await ctx.reply(text);
+            const replyText = response.length > 4000 ? response.substring(0, 4000) + '...' : response;
+            await ctx.reply(replyText);
           }
         }
       } catch (error: any) {
         console.error('Photo processing error:', error);
-        await ctx.reply(`Error processing image: ${error.message}`);
+        if (ctx.chat.type === 'private') {
+          await ctx.reply(`Error processing image: ${error.message}`);
+        }
       }
     });
 
