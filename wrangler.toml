@@ -2,12 +2,16 @@ name = "venture-os-bot"
 main = "src/index.ts"
 compatibility_date = "2024-02-08"
 
-[vars]
-# TELEGRAM_BOT_TOKEN = "your-token"
+# Optional: Add your Account ID here for faster deployment
+# account_id = "your-actual-account-id"
 
-[[kv_namespaces]]
-binding = "KV"
-id = "your-kv-id"
+[vars]
+# TELEGRAM_BOT_TOKEN and NEBIUS_API_KEY are managed via GitHub Secrets
+
+# Commented out until you create a KV namespace via: npx wrangler kv:namespace create KV
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-id"
 
 [[r2_buckets]]
 binding = "ARTIFACTS"
